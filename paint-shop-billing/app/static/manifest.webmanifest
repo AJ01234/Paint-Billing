@@ -1,0 +1,11 @@
+{
+  "name": "Local First Billing Anklikar Hardware and Paints",
+  "short_name": "Anklikar Billing",
+  "description": "Paint shop billing, inventory, ledger, and GST invoices for Anklikar Hardware and Paint Store.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f5ef",
+  "theme_color": "#2c221c",
+  "scope": "/",
+  "lang": "en-IN"
+}

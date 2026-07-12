@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}New Invoice{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Billing</p>
+        <h2>{{ "Edit invoice" if submit_label == "Update bill" else "Create invoice" }}</h2>
+        <p class="muted">Make GST or non-GST bills in under a minute with quick product search.</p>
+    </div>
+    <div class="badge">{{ invoice_number }}</div>
+</section>
+
+<form method="post" action="{{ form_action }}" class="invoice-builder" id="invoice-builder">
+    <section class="panel">
+        <div class="form-grid wide">
+            <label>Customer / Painter
+                <select name="party_id" id="party-select">
+                    <option value="" {% if not selected_party_id %}selected{% endif %}>Walk-in Customer</option>
+                    {% for party in parties %}
+                    <option value="{{ party.id }}" {% if selected_party_id == party.id %}selected{% endif %}>{{ party.name }}{% if party.phone %} - {{ party.phone }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Or enter name manually
+                <input type="text" name="custom_party_name" value="{{ existing_custom_party_name if existing_custom_party_name is defined else '' }}" placeholder="Enter customer or painter name">
+            </label>
+            <label>Bill Type
+                <select name="bill_type" id="bill-type">
+                    <option value="GST" {% if selected_bill_type == "GST" %}selected{% endif %}>GST Bill</option>
+                    <option value="NON_GST" {% if selected_bill_type == "NON_GST" %}selected{% endif %}>Non-GST Bill</option>
+                </select>
+            </label>
+            <label>Tax Split
+                <select name="supply_type" id="supply-type">
+                    {% for value, label in supply_types %}
+                    <option value="{{ value }}" {% if selected_supply_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Payment Mode
+                <select name="payment_mode">
+                    {% for mode in payment_modes %}
+                    <option value="{{ mode }}" {% if selected_payment_mode == mode %}selected{% endif %}>{{ mode }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Notes
+                <input type="text" name="notes" value="{{ existing_notes if existing_notes is defined else '' }}" placeholder="Optional remarks">
+            </label>
+        </div>
+        <div class="custom-party-grid">
+            <label>Manual entry type
+                <select name="custom_party_type">
+                    <option value="customer" {% if existing_custom_party_type is defined and existing_custom_party_type == "customer" %}selected{% endif %}>Customer</option>
+                    <option value="painter" {% if existing_custom_party_type is defined and existing_custom_party_type == "painter" %}selected{% endif %}>Painter</option>
+                </select>
+            </label>
+            <label>Manual phone
+                <input type="text" name="custom_party_phone" value="{{ existing_custom_party_phone if existing_custom_party_phone is defined else '' }}" placeholder="Phone number">
+            </label>
+            <label>Manual GSTIN
+                <input type="text" name="custom_party_gstin" value="{{ existing_custom_party_gstin if existing_custom_party_gstin is defined else '' }}" placeholder="Optional GSTIN">
+            </label>
+            <label class="span-2">Manual address
+                <input type="text" name="custom_party_address" value="{{ existing_custom_party_address if existing_custom_party_address is defined else '' }}" placeholder="Address">
+            </label>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h3>Items</h3>
+            <button class="button secondary" type="button" data-add-line>Add item</button>
+        </div>
+        <div class="invoice-lines" data-lines>
+            {% for line in invoice_lines %}
+            <div class="invoice-line" data-line data-base-price="{{ line.price if line else '' }}" data-gst="{{ line.gst_percent if line else '' }}" data-discount-mode="manual">
+                <div class="search-box">
+                    <label>Product search
+                        <input type="text" placeholder="Type brand, size, shade, name" value="{{ line.display if line else '' }}" data-product-search autocomplete="off">
+                    </label>
+                    <input type="hidden" name="product_id" value="{{ line.product_id if line else '' }}" data-product-id>
+                    <div class="search-results" data-search-results></div>
+                </div>
+                <label>Qty<input type="number" step="0.01" name="quantity" value="{{ line.quantity if line else 1 }}" min="0.01" data-qty></label>
+                <label>Discount<input type="number" step="0.01" name="discount" value="{{ line.discount if line else 0 }}" min="0" data-discount></label>
+                <label>Price<input type="number" step="0.01" name="unit_price" value="{{ line.price if line else '' }}" data-price-input placeholder="Auto"></label>
+                <label>GST %<input type="text" data-gst disabled placeholder="Auto"></label>
+                <label>Line total<input type="text" data-total disabled placeholder="Auto"></label>
+                <button class="button ghost remove-line" type="button" data-remove-line>Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel totals-panel">
+        <div class="totals-grid">
+            <div><span>Subtotal</span><strong data-summary="subtotal">Rs 0.00</strong></div>
+            <div><span>Discount</span><strong data-summary="discount">Rs 0.00</strong></div>
+            <div><span>CGST</span><strong data-summary="cgst">Rs 0.00</strong></div>
+            <div><span>SGST</span><strong data-summary="sgst">Rs 0.00</strong></div>
+            <div><span>IGST</span><strong data-summary="igst">Rs 0.00</strong></div>
+            <div class="grand-total"><span>Grand Total</span><strong data-summary="grand_total">Rs 0.00</strong></div>
+        </div>
+        <button class="button primary" type="submit">{{ submit_label }}</button>
+    </section>
+</form>
+{% endblock %}

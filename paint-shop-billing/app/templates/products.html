@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Products{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Inventory</p>
+        <h2>Products</h2>
+        <p class="muted">Track paint, putty, primer, shade, size, GST, and stock in one list.</p>
+    </div>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <form class="toolbar" method="get" action="/products">
+            <input type="search" name="q" value="{{ q }}" placeholder="Search by brand, size, shade, name">
+            <button class="button secondary" type="submit">Search</button>
+        </form>
+        {% if import_result %}
+        <div class="sidebar-card top-gap">
+            <strong>Import completed</strong>
+            <p class="muted">{{ import_result.filename }}</p>
+            <p>Created: {{ import_result.created }} | Updated: {{ import_result.updated }}</p>
+        </div>
+        {% endif %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Size / Shade</th>
+                        <th>GST</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>
+                            <strong>{{ product.brand }} {{ product.name }}</strong>
+                            <div class="muted small">{{ product.category }} | HSN {{ product.hsn_code }}</div>
+                        </td>
+                        <td>{{ product.size }} / {{ product.shade }}</td>
+                        <td>{{ product.gst_percent }}%</td>
+                        <td>Rs {{ product.selling_price|currency }}</td>
+                        <td class="{{ 'danger-text' if product.stock_quantity <= product.low_stock_threshold else '' }}">
+                            {{ product.stock_quantity }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No products found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Import products from Excel</h3>
+        <form class="grid-form" method="post" action="/products/import" enctype="multipart/form-data">
+            <label class="span-2">Excel file (.xlsx)
+                <input type="file" name="file" accept=".xlsx,.xlsm" required>
+            </label>
+            <p class="muted span-2 small">Supported columns: name/product, brand, size, shade/color, category, hsn, gst, price/rate, stock/qty, threshold, barcode/code.</p>
+            <button class="button secondary full span-2" type="submit">Import Excel</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h3>Add product</h3>
+        <form class="grid-form" method="post" action="/products">
+            <label>Name<input name="name" required></label>
+            <label>Brand<input name="brand"></label>
+            <label>Category<input name="category"></label>
+            <label>Size<input name="size" placeholder="1L / 4L / 20KG"></label>
+            <label>Shade<input name="shade"></label>
+            <label>HSN<input name="hsn_code"></label>
+            <label>GST %<input type="number" step="0.01" name="gst_percent" value="18"></label>
+            <label>Price<input type="number" step="0.01" name="selling_price" required></label>
+            <label>Stock<input type="number" step="0.01" name="stock_quantity" value="0"></label>
+            <label>Low stock threshold<input type="number" step="0.01" name="low_stock_threshold" value="5"></label>
+            <label>Barcode / code<input name="barcode"></label>
+            <button class="button primary full" type="submit">Save product</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

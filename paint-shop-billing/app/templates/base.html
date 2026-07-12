@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c221c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="{{ shop.app_name }}">
+    <title>{% block title %}{{ shop.app_name }}{% endblock %}</title>
+    <link rel="manifest" href="/static/manifest.webmanifest">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script defer src="/static/app.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div>
+                <p class="eyebrow">{{ shop.app_name }}</p>
+                <h1>{{ shop.business_name }}</h1>
+                <p class="muted">{{ shop.address }}</p>
+            </div>
+            <nav class="nav-links">
+                <a href="/">Dashboard</a>
+                <a href="/invoices/new">New Invoice</a>
+                <a href="/invoices">Bills</a>
+                <a href="/reports">Reports</a>
+                <a href="/accounting">Accounting & ITR</a>
+                <a href="/products">Products</a>
+                <a href="/parties">Customers & Ledger</a>
+            </nav>
+            <div class="sidebar-card">
+                <p class="muted">GSTIN</p>
+                <strong>{{ shop.gstin }}</strong>
+                <p class="muted">Phone: {{ shop.phone }}</p>
+            </div>
+        </aside>
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

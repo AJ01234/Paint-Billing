@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Today</p>
+        <h2>Daily dashboard</h2>
+        <p class="muted">Track sales, low stock, and outstanding credit from one place.</p>
+    </div>
+    <a class="button primary" href="/invoices/new">Create Bill</a>
+</section>
+
+<section class="metrics-grid">
+    <article class="metric-card">
+        <span>Today's Sales</span>
+        <strong>Rs {{ metrics.today_sales|currency }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Invoices Today</span>
+        <strong>{{ metrics.today_invoice_count }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Outstanding Udhaar</span>
+        <strong>Rs {{ metrics.outstanding_ledger|currency }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Low Stock Items</span>
+        <strong>{{ metrics.low_stock_count }}</strong>
+    </article>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Smart billing center</h3>
+            <a href="/reports">Open reports</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Owner report window</td>
+                        <td>{{ owner_settings.report_start_hour }}:00 to {{ owner_settings.report_end_hour }}:00</td>
+                    </tr>
+                    <tr>
+                        <td>Pending outbound messages</td>
+                        <td>{{ pending_notification_count }}</td>
+                    </tr>
+                    <tr>
+                        <td>Upcoming payment reminders</td>
+                        <td>{{ due_reminder_count }}</td>
+                    </tr>
+                    <tr>
+                        <td>Owner phone</td>
+                        <td>{{ owner_settings.primary_phone or "-" }}</td>
+                    </tr>
+                    <tr>
+                        <td>Accounting & ITR helper</td>
+                        <td><a href="/accounting">Open filing prep</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <h3>Owner settings</h3>
+        <form class="grid-form" method="post" action="/settings/owner">
+            <label>Owner name<input name="owner_name" value="{{ owner_settings.owner_name }}" required></label>
+            <label>Primary phone<input name="primary_phone" value="{{ owner_settings.primary_phone }}"></label>
+            <label>WhatsApp phone<input name="whatsapp_phone" value="{{ owner_settings.whatsapp_phone }}"></label>
+            <label>Report start hour<input type="number" min="0" max="23" name="report_start_hour" value="{{ owner_settings.report_start_hour }}"></label>
+            <label>Report end hour<input type="number" min="0" max="23" name="report_end_hour" value="{{ owner_settings.report_end_hour }}"></label>
+            <label><input type="checkbox" name="enable_sms" {% if owner_settings.enable_sms %}checked{% endif %}> Enable SMS provider later</label>
+            <label><input type="checkbox" name="enable_whatsapp" {% if owner_settings.enable_whatsapp %}checked{% endif %}> Enable WhatsApp provider later</label>
+            <button class="button secondary full" type="submit">Save owner settings</button>
+        </form>
+    </div>
+</section>
+
+<section class="two-column">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Low stock alerts</h3>
+            <a href="/products">Manage inventory</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Size</th>
+                        <th>Stock</th>
+                        <th>Threshold</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in low_stock_items %}
+                    <tr>
+                        <td>{{ product.brand }} {{ product.name }}</td>
+                        <td>{{ product.size }} / {{ product.shade }}</td>
+                        <td>{{ product.stock_quantity }}</td>
+                        <td>{{ product.low_stock_threshold }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4">No low stock items right now.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Top selling items</h3>
+        </div>
+        <div class="stack-list">
+            {% for product_name, quantity in top_products %}
+            <div class="stack-row">
+                <span>{{ product_name }}</span>
+                <strong>{{ quantity }}</strong>
+            </div>
+            {% else %}
+            <p class="muted">Start creating bills to see top products.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h3>Recent bills</h3>
+        <a href="/invoices">View all bills</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice</th>
+                    <th>Date</th>
+                    <th>Party</th>
+                    <th>Mode</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in recent_invoices %}
+                <tr>
+                    <td><a href="/invoices/{{ invoice.id }}">{{ invoice.invoice_number }}</a></td>
+                    <td>{{ invoice.invoice_date.strftime("%d %b %Y %I:%M %p") }}</td>
+                    <td>{{ parties.get(invoice.party_id).name if invoice.party_id in parties else "Walk-in" }}</td>
+                    <td>{{ invoice.payment_mode }}</td>
+                    <td>{{ invoice.status.value }}</td>
+                    <td>Rs {{ invoice.grand_total|currency }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No bills created yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Daily reports by date</h3>
+            <a href="/reports">View all</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoices</th>
+                        <th>Sales</th>
+                        <th>Low Stock</th>
+                        <th>PDF</th>
+                        <th>WhatsApp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in recent_reports %}
+                    <tr>
+                        <td>{{ report.report_date }}</td>
+                        <td>{{ report.invoice_count }}</td>
+                        <td>Rs {{ report.total_sales|currency }}</td>
+                        <td>{{ report.low_stock_count }}</td>
+                        <td><a href="/reports/{{ report.id }}/download">Download PDF</a></td>
+                        <td>
+                            {% if report.id in report_share_urls and report_share_urls[report.id] %}
+                            <a href="{{ report_share_urls[report.id] }}" target="_blank" rel="noreferrer">Share</a>
+                            {% else %}-{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6">No reports generated yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Pending notifications</h3>
+        </div>
+        <div class="stack-list">
+            {% for notification in pending_notifications %}
+            <div class="stack-row">
+                <span>{{ notification.message_type }} for {{ notification.recipient_name or notification.recipient_phone or "Owner" }}</span>
+                <strong>{{ notification.channel.value }}</strong>
+            </div>
+            {% else %}
+            <p class="muted">No pending notifications right now.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h3>Upcoming payment reminders</h3>
+        <a href="/parties">Manage reminders</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Due date</th>
+                    <th>Party</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reminder in upcoming_reminders %}
+                <tr>
+                    <td>{{ reminder.due_date.strftime("%d %b %Y") }}</td>
+                    <td>{{ parties.get(reminder.party_id).name if reminder.party_id in parties else "-" }}</td>
+                    <td>Rs {{ reminder.amount_due|currency }}</td>
+                    <td>{{ reminder.status.value }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No payment reminders scheduled yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

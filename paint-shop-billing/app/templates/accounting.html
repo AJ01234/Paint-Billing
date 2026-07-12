@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Accounting & ITR Helper{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Accounting & Tax Prep</p>
+        <h2>Business summary for filing season</h2>
+        <p class="muted">Track expenses, review financial-year totals, and prepare the numbers needed before filing on the Income Tax portal.</p>
+    </div>
+    <div class="header-actions">
+        <a class="button secondary" href="/accounting?fy_year={{ previous_fy_start }}">Previous FY</a>
+        {% if can_go_next %}
+        <a class="button secondary" href="/accounting?fy_year={{ next_fy_start }}">Next FY</a>
+        {% endif %}
+        <a class="button primary" href="/accounting/export?fy_year={{ summary.period_start.year }}">Download ITR Helper PDF</a>
+    </div>
+</section>
+
+<section class="metrics-grid accounting-metrics">
+    <article class="metric-card">
+        <span>{{ summary.financial_year }} turnover</span>
+        <strong>Rs {{ summary.turnover|currency }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Business expenses</span>
+        <strong>Rs {{ summary.business_expenses|currency }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Net profit</span>
+        <strong>Rs {{ summary.net_profit|currency }}</strong>
+    </article>
+    <article class="metric-card">
+        <span>Presumptive helper</span>
+        <strong>Rs {{ summary.presumptive_income|currency }}</strong>
+    </article>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>ITR helper overview</h3>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr><td>Period</td><td>{{ summary.period_start.strftime("%d %b %Y") }} to {{ summary.period_end.strftime("%d %b %Y") }}</td></tr>
+                    <tr><td>Invoices counted</td><td>{{ summary.invoice_count }}</td></tr>
+                    <tr><td>Gross turnover</td><td>Rs {{ summary.turnover|currency }}</td></tr>
+                    <tr><td>Taxable sales</td><td>Rs {{ summary.taxable_sales|currency }}</td></tr>
+                    <tr><td>GST collected</td><td>Rs {{ summary.gst_collected|currency }}</td></tr>
+                    <tr><td>Total invoice discounts</td><td>Rs {{ summary.invoice_discount_total|currency }}</td></tr>
+                    <tr><td>Cash turnover</td><td>Rs {{ summary.cash_turnover|currency }}</td></tr>
+                    <tr><td>Digital / non-cash turnover</td><td>Rs {{ summary.digital_turnover|currency }}</td></tr>
+                    <tr><td>Outstanding ledger</td><td>Rs {{ summary.outstanding_ledger|currency }}</td></tr>
+                    <tr><td>Low stock items</td><td>{{ summary.low_stock_count }}</td></tr>
+                    <tr><td>Likely filing path</td><td><strong>{{ summary.likely_itr }}</strong></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="callout top-gap">
+            <strong>{{ summary.likely_itr }}</strong>
+            <p>{{ summary.itr_note }}</p>
+            <p class="small">This helper prepares your numbers. Please verify the final return form and figures on the official Income Tax portal before filing.</p>
+        </div>
+    </div>
+
+    <div class="stack-column">
+        <div class="panel">
+            <h3>Add expense</h3>
+            <form class="grid-form" method="post" action="/expenses">
+                <label>Date<input type="date" name="expense_date" value="{{ today.isoformat() }}" required></label>
+                <label>Amount<input type="number" step="0.01" name="amount" required></label>
+                <label>Category
+                    <select name="category">
+                        <option>Stock Purchase</option>
+                        <option>Shop Rent</option>
+                        <option>Electricity</option>
+                        <option>Salary</option>
+                        <option>Transport</option>
+                        <option>Repair</option>
+                        <option>Misc</option>
+                    </select>
+                </label>
+                <label>Expense type
+                    <select name="expense_type">
+                        <option value="BUSINESS">Business</option>
+                        <option value="PERSONAL">Personal</option>
+                    </select>
+                </label>
+                <label>Payment mode<input name="payment_mode" value="Cash"></label>
+                <label>Vendor / Payee<input name="vendor_name"></label>
+                <label class="span-2">Notes<textarea name="notes" rows="2" placeholder="Optional details"></textarea></label>
+                <button class="button primary full span-2" type="submit">Save expense</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h3>Expense split</h3>
+            <div class="stack-list">
+                <div class="stack-row"><span>Business expenses</span><strong>Rs {{ summary.business_expenses|currency }}</strong></div>
+                <div class="stack-row"><span>Personal expenses</span><strong>Rs {{ summary.personal_expenses|currency }}</strong></div>
+                <div class="stack-row"><span>Net profit after business expenses</span><strong>Rs {{ summary.net_profit|currency }}</strong></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Month-wise profit snapshot</h3>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Sales</th>
+                        <th>Expenses</th>
+                        <th>Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary.monthly_rows %}
+                    <tr>
+                        <td>{{ row.label }}</td>
+                        <td>Rs {{ row.sales|currency }}</td>
+                        <td>Rs {{ row.expenses|currency }}</td>
+                        <td>Rs {{ row.profit|currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4">No sales or expenses in this period yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Top expense heads</h3>
+        </div>
+        <div class="stack-list">
+            {% for row in expense_rows %}
+            <div class="stack-row">
+                <span>{{ row.category }}</span>
+                <strong>Rs {{ row.amount|currency }}</strong>
+            </div>
+            {% else %}
+            <p class="muted">Add expenses to see the category breakdown.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h3>Recent expenses</h3>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Vendor</th>
+                    <th>Mode</th>
+                    <th>Amount</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in recent_expenses %}
+                <tr>
+                    <td>{{ expense.entry_date.strftime("%d %b %Y") }}</td>
+                    <td>{{ expense.expense_type.value }}</td>
+                    <td>{{ expense.category }}</td>
+                    <td>{{ expense.vendor_name or "-" }}</td>
+                    <td>{{ expense.payment_mode }}</td>
+                    <td>Rs {{ expense.amount|currency }}</td>
+                    <td>{{ expense.notes or "-" }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No expenses recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

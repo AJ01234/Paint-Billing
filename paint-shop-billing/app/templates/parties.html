@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Customers & Ledger{% endblock %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <p class="eyebrow">Contacts & Udhaar</p>
+        <h2>Customers, painters, and ledger</h2>
+        <p class="muted">Track customer details, painter balances, and payment recovery history.</p>
+    </div>
+</section>
+
+<section class="two-column wide-left">
+    <div class="panel">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Phone</th>
+                        <th>GSTIN</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for party in parties %}
+                    <tr>
+                        <td>{{ party.name }}</td>
+                        <td>{{ party.party_type.value.title() }}</td>
+                        <td>{{ party.phone }}</td>
+                        <td>{{ party.gstin or "-" }}</td>
+                        <td class="{{ 'danger-text' if party.running_balance > 0 else '' }}">Rs {{ party.running_balance|currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No customers or painters added yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="table-wrap top-gap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Party</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in ledger_entries %}
+                    <tr>
+                        <td>{{ entry.entry_date.strftime("%d %b %Y") }}</td>
+                        <td>{{ party_map.get(entry.party_id).name if entry.party_id in party_map else "-" }}</td>
+                        <td>{{ entry.entry_type.value }}</td>
+                        <td>{{ entry.description }}</td>
+                        <td>Rs {{ entry.amount|currency }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No ledger entries yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="table-wrap top-gap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reminder date</th>
+                        <th>Party</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reminder in reminders %}
+                    <tr>
+                        <td>{{ reminder.due_date.strftime("%d %b %Y") }}</td>
+                        <td>{{ party_map.get(reminder.party_id).name if reminder.party_id in party_map else "-" }}</td>
+                        <td>Rs {{ reminder.amount_due|currency }}</td>
+                        <td>{{ reminder.status.value }}</td>
+                        <td>{{ reminder.notes or "-" }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No payment reminders yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="stack-column">
+        <div class="panel">
+            <h3>Add customer or painter</h3>
+            <form class="grid-form" method="post" action="/parties">
+                <label>Name<input name="name" required></label>
+                <label>Phone<input name="phone"></label>
+                <label>Address<textarea name="address" rows="2"></textarea></label>
+                <label>GSTIN<input name="gstin"></label>
+                <label>Type
+                    <select name="party_type">
+                        <option value="customer">Customer</option>
+                        <option value="painter">Painter</option>
+                    </select>
+                </label>
+                <button class="button primary full" type="submit">Save party</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h3>Record payment</h3>
+            <form class="grid-form" method="post" action="/ledger/payment">
+                <label>Party
+                    <select name="party_id" required>
+                        {% for party in parties %}
+                        <option value="{{ party.id }}">{{ party.name }} (Rs {{ party.running_balance|currency }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Amount<input type="number" step="0.01" name="amount" required></label>
+                <label>Description<input name="description" value="Payment received"></label>
+                <button class="button secondary full" type="submit">Post payment</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h3>Schedule payment reminder</h3>
+            <form class="grid-form" method="post" action="/reminders">
+                <label>Party
+                    <select name="party_id" required>
+                        {% for party in parties %}
+                        <option value="{{ party.id }}">{{ party.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Due date<input type="date" name="due_date" required></label>
+                <label>Amount due<input type="number" step="0.01" name="amount_due" required></label>
+                <label>Notes<input name="notes" placeholder="Reminder note"></label>
+                <button class="button secondary full" type="submit">Schedule reminder</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

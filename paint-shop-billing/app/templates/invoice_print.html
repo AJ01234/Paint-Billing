@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Quotation{% endblock %}
+{% block content %}
+<section class="page-header no-print">
+    <div>
+        <p class="eyebrow">Printable Quotation</p>
+        <h2>Quotation Preview</h2>
+        <p class="muted">Use this page for printing or downloading the quotation.</p>
+    </div>
+    <div class="header-actions">
+        <button class="button primary" onclick="window.print()">Print quotation</button>
+        <a class="button secondary" href="/invoices/{{ invoice.id }}/pdf">Download PDF</a>
+        {% if whatsapp_share_url %}
+        <a class="button secondary" href="{{ whatsapp_share_url }}" target="_blank" rel="noreferrer">Share WhatsApp</a>
+        {% endif %}
+        <button class="button secondary" type="button" onclick='navigator.clipboard.writeText({{ whatsapp_share_text|tojson }} + "\n" + window.location.origin + "/invoices/{{ invoice.id }}/pdf")'>Copy Share Text</button>
+        <a class="button secondary" href="/invoices/{{ invoice.id }}/edit">Edit bill</a>
+        <form method="post" action="/invoices/{{ invoice.id }}/delete" onsubmit="return confirm('Delete this bill permanently?');">
+            <button class="button danger" type="submit">Delete bill</button>
+        </form>
+        {% if invoice.status.value == "FINALIZED" %}
+        <form method="post" action="/invoices/{{ invoice.id }}/cancel" onsubmit="return confirm('Cancel this invoice and restore stock?');">
+            <button class="button danger" type="submit">Cancel invoice</button>
+        </form>
+        {% endif %}
+    </div>
+</section>
+
+<div class="invoice-scroll">
+    <section class="print-sheet exact-invoice-sheet">
+        <table class="exact-invoice-table" cellspacing="0" cellpadding="0">
+            <!-- Row 1: GSTIN + Copy label -->
+            <tr>
+                <td colspan="7" class="inv-top-gstin">
+                    <table class="inv-inner-full" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td class="inv-gstin-left"><b>GSTIN &nbsp;: {{ shop.gstin }}</b></td>
+                            <td class="inv-gstin-right"><i>Original Copy</i></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Row 2: QUOTATION title -->
+            <tr>
+                <td colspan="7" class="inv-title-cell">
+                    <div class="inv-tax-caption"><u>QUOTATION</u></div>
+                    <div class="inv-shop-name">M/S {{ shop.business_name }}</div>
+                    <div class="inv-shop-addr">{{ shop.address }}</div>
+                </td>
+            </tr>
+            <!-- Row 3: Metadata left + right -->
+            <tr>
+                <td colspan="7" class="inv-meta-cell">
+                    <table class="inv-inner-full" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td class="inv-meta-left">
+                                <div>Dated &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ invoice.invoice_date.strftime("%d-%m-%Y") }}</div>
+                                <div>Place of Supply <span class="c">:</span> {{ shop.state }} ({{ shop.state_code }})</div>
+                                <div>Reverse Charge <span class="c">:</span> N</div>
+                                <div>GR/RR No. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span></div>
+                            </td>
+                            <td class="inv-meta-right">
+                                <div>Transport &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span></div>
+                                <div>Vehicle No. &nbsp;&nbsp;&nbsp;<span class="c">:</span></div>
+                                <div>Station &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span></div>
+                                <div>E-Way Bill No. <span class="c">:</span></div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Row 4: Billed to / Shipped to -->
+            <tr>
+                <td colspan="7" class="inv-party-cell">
+                    <table class="inv-inner-full" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td class="inv-party-left">
+                                <div><b><i>Billed to</i></b> <span class="c">:</span></div>
+                                <div><b>{{ party.name if party else "Walk-in Customer" }}</b></div>
+                                <div class="inv-address-wrap">{{ party.address if party and party.address else "" }}</div>
+                                <div>{% if party and party.phone %}{{ party.phone }}{% endif %}</div>
+                                <div>&nbsp;</div>
+                                <div>Party PAN &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ party_pan }}</div>
+                                <div>State &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ shop.state }} ({{ shop.state_code }})</div>
+                                <div>GSTIN / UIN &nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ party.gstin if party and party.gstin else "" }}</div>
+                            </td>
+                            <td class="inv-party-right">
+                                <div><b><i>Shipped to</i></b> <span class="c">:</span></div>
+                                <div><b>{{ party.name if party else "Walk-in Customer" }}</b></div>
+                                <div class="inv-address-wrap">{{ party.address if party and party.address else "" }}</div>
+                                <div>{% if party and party.phone %}{{ party.phone }}{% endif %}</div>
+                                <div>&nbsp;</div>
+                                <div>Party PAN &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ party_pan }}</div>
+                                <div>State &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ shop.state }} ({{ shop.state_code }})</div>
+                                <div>GSTIN / UIN &nbsp;&nbsp;&nbsp;<span class="c">:</span> {{ party.gstin if party and party.gstin else "" }}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Row 5: Items table header -->
+            <tr class="inv-items-hdr">
+                <th class="inv-sn">S.N.</th>
+                <th class="inv-desc">Description of Goods</th>
+                <th class="inv-hsn">HSN/SAC<br>Code</th>
+                <th class="inv-qty">Qty.</th>
+                <th class="inv-unit">Unit</th>
+                <th class="inv-price">Price</th>
+                <th class="inv-amt">Amount(<span class="rupee-sym">`</span>)</th>
+            </tr>
+            <!-- Item rows -->
+            {% for item in items %}
+            <tr class="inv-item-row">
+                <td class="inv-sn-td">{{ loop.index }}.</td>
+                <td class="inv-desc-td">{{ (item.brand ~ ' ' ~ item.product_name)|trim|upper }}</td>
+                <td class="inv-hsn-td">{{ item.hsn_code }}</td>
+                <td class="inv-qty-td">{{ '%.2f'|format(item.quantity) }}</td>
+                <td class="inv-unit-td">{{ item_units[loop.index0] }}</td>
+                <td class="inv-price-td">{{ '%.2f'|format(item.unit_price) }}</td>
+                <td class="inv-amt-td">{{ item.taxable_value|currency }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Subtotal row -->
+            <tr class="inv-subtotal-row">
+                <td class="inv-sn-td"></td>
+                <td class="inv-desc-td"></td>
+                <td class="inv-hsn-td"></td>
+                <td class="inv-qty-td"></td>
+                <td class="inv-unit-td"></td>
+                <td class="inv-price-td"></td>
+                <td class="inv-amt-td"><b>{{ invoice.taxable_total|currency }}</b></td>
+            </tr>
+            <!-- Tax additions area -->
+            <tr class="inv-tax-add-row">
+                <td colspan="6" class="inv-tax-lines-td">
+                    <table class="inv-tax-lines" cellspacing="0" cellpadding="0">
+                        {% if invoice.bill_type.value == "GST" and invoice.cgst %}
+                        <tr>
+                            <td class="inv-tl-spacer"></td>
+                            <td class="inv-tl-label"><i>Add</i> <span class="c">:</span> <i>CGST</i></td>
+                            <td class="inv-tl-at">@</td>
+                            <td class="inv-tl-pct">{{ "%.2f"|format(items[0].gst_percent / 2 if items else 0) }} %</td>
+                        </tr>
+                        {% endif %}
+                        {% if invoice.bill_type.value == "GST" and invoice.sgst %}
+                        <tr>
+                            <td class="inv-tl-spacer"></td>
+                            <td class="inv-tl-label"><i>Add</i> <span class="c">:</span> <i>SGST</i></td>
+                            <td class="inv-tl-at">@</td>
+                            <td class="inv-tl-pct">{{ "%.2f"|format(items[0].gst_percent / 2 if items else 0) }} %</td>
+                        </tr>
+                        {% endif %}
+                        {% if invoice.bill_type.value == "GST" and invoice.igst %}
+                        <tr>
+                            <td class="inv-tl-spacer"></td>
+                            <td class="inv-tl-label"><i>Add</i> <span class="c">:</span> <i>IGST</i></td>
+                            <td class="inv-tl-at">@</td>
+                            <td class="inv-tl-pct">{{ "%.2f"|format(items[0].gst_percent if items else 0) }} %</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="inv-tl-spacer"></td>
+                            <td class="inv-tl-label"><i>Add</i> <span class="c">:</span> <i>Rounded Off (+)</i></td>
+                            <td class="inv-tl-at"></td>
+                            <td class="inv-tl-pct"></td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="inv-tax-amounts-td">
+                    <table class="inv-tax-amounts" cellspacing="0" cellpadding="0">
+                        {% if invoice.bill_type.value == "GST" and invoice.cgst %}
+                        <tr><td>{{ invoice.cgst|currency }}</td></tr>
+                        {% endif %}
+                        {% if invoice.bill_type.value == "GST" and invoice.sgst %}
+                        <tr><td>{{ invoice.sgst|currency }}</td></tr>
+                        {% endif %}
+                        {% if invoice.bill_type.value == "GST" and invoice.igst %}
+                        <tr><td>{{ invoice.igst|currency }}</td></tr>
+                        {% endif %}
+                        <tr><td>{{ round_off|currency }}</td></tr>
+                    </table>
+                </td>
+            </tr>
+            <!-- Grand Total row -->
+            <tr class="inv-grand-row">
+                <td colspan="3" class="inv-grand-label"><b>Grand Total</b></td>
+                <td class="inv-grand-qty"><b>{{ '%.2f'|format(total_quantity) }}</b></td>
+                <td class="inv-grand-unit"><b>{{ item_units[0] if item_units else "Units" }}</b></td>
+                <td class="inv-grand-rupee"><b><span class="rupee-sym">`</span></b></td>
+                <td class="inv-grand-amount"><b>{{ invoice.grand_total|currency }}</b></td>
+            </tr>
+            <!-- Tax summary strip -->
+            <tr class="inv-taxstrip-hdr">
+                <td class="inv-ts-rate"><u><b>Tax Rate</b></u></td>
+                <td colspan="2" class="inv-ts-taxable"><b>Taxable Amt.</b></td>
+                <td class="inv-ts-cgst"><b>CGST Amt.</b></td>
+                <td class="inv-ts-sgst"><b>SGST Amt.</b></td>
+                <td colspan="2" class="inv-ts-total"><b>{% if invoice.igst %}IGST Amt.{% else %}Total Tax{% endif %}</b></td>
+            </tr>
+            <tr class="inv-taxstrip-data">
+                <td class="inv-ts-rate">{% if items %}{{ items[0].gst_percent }}%{% else %}0%{% endif %}</td>
+                <td colspan="2" class="inv-ts-taxable">{{ invoice.taxable_total|currency }}</td>
+                <td class="inv-ts-cgst">{{ invoice.cgst|currency }}</td>
+                <td class="inv-ts-sgst">{{ invoice.sgst|currency }}</td>
+                <td colspan="2" class="inv-ts-total">{% if invoice.igst %}{{ invoice.igst|currency }}{% else %}{{ (invoice.cgst + invoice.sgst)|currency }}{% endif %}</td>
+            </tr>
+            <!-- Amount in words -->
+            <tr>
+                <td colspan="7" class="inv-words-cell">{{ amount_in_words }}</td>
+            </tr>
+            <!-- Footer: Terms + Signature -->
+            <tr>
+                <td colspan="4" class="inv-footer-left">
+                    <div><u><b>Terms & Conditions</b></u></div>
+                    <div>E.& O.E.</div>
+                    <div>1. Goods once sold will not be taken back.</div>
+                    <div>2. Interest @ 18% p.a. will be charged if the payment</div>
+                    <div>is not made with in the stipulated time.</div>
+                    <div>3. Subject to '{{ shop.state }}' Jurisdiction only.</div>
+                    {% if invoice.notes %}<div>4. {{ invoice.notes }}</div>{% endif %}
+                </td>
+                <td colspan="3" class="inv-footer-right">
+                    <div><b>Receiver's Signature</b> <span class="c">:</span></div>
+                    <hr class="inv-sig-line">
+                    <div class="inv-for-line">for M/S {{ shop.business_name }}</div>
+                    <div class="inv-auth-line">Authorised Signatory</div>
+                </td>
+            </tr>
+        </table>
+    </section>
+</div>
+{% endblock %}
